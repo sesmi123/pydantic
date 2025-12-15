@@ -2,6 +2,7 @@
 Tests for internal things that are complex enough to warrant their own unit tests.
 """
 
+import importlib
 import sys
 from copy import deepcopy
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ from dirty_equals import Contains, IsPartialDict
 from pydantic_core import CoreSchema
 from pydantic_core import core_schema as cs
 
+import pydantic._internal._internal_dataclass as internal_dc
 from pydantic import BaseModel, TypeAdapter
 from pydantic._internal._config import ConfigWrapper
 from pydantic._internal._core_metadata import update_core_metadata
@@ -240,3 +242,14 @@ def test_pydantic_js_functions():
     )
 
     assert metadata['pydantic_js_functions'] == [func]
+
+
+def test_internal_dataclass(monkeypatch):
+    def _reload_with_version(monkeypatch, version):
+        monkeypatch.setattr(sys, 'version_info', version)
+        importlib.reload(internal_dc)
+        return internal_dc.slots_true
+
+    assert _reload_with_version(monkeypatch, (3, 10)) == {'slots': True}
+    assert _reload_with_version(monkeypatch, (3, 9)) == {}
+    assert _reload_with_version(monkeypatch, (3, 11)) == {'slots': True}
